@@ -78,7 +78,8 @@ FROM node:20 AS runner
 
 WORKDIR /calcom
 
-RUN apt-get update && apt-get install -y --no-install-recommends netcat-openbsd wget && rm -rf /var/lib/apt/lists/*
+# Packages netcat-openbsd and wget are not required.
+# wget comes with node:20 image, and netcat TCP check is replaced with Node.js.
 
 COPY --from=builder-two /calcom ./
 ARG NEXT_PUBLIC_WEBAPP_URL=http://localhost:3000
@@ -89,6 +90,6 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=30s --retries=5 \
-  CMD wget --spider http://localhost:3000 || exit 1
+  CMD node -e "require('http').get('http://localhost:3000', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
 
 CMD ["/calcom/scripts/start.sh"]

@@ -47,8 +47,8 @@ USAGE
 wait_for() {
   case "$PROTOCOL" in
     tcp)
-      if ! command -v nc >/dev/null; then
-        echoerr 'nc command is missing!'
+      if ! command -v node >/dev/null; then
+        echoerr 'node command is missing!'
         exit 1
       fi
       ;;
@@ -63,7 +63,13 @@ wait_for() {
   while :; do
     case "$PROTOCOL" in
       tcp)
-        nc -w 1 -z "$HOST" "$PORT" > /dev/null 2>&1
+        node -e "
+          var s = require('net').createConnection($PORT, '$HOST');
+          s.setTimeout(1000);
+          s.on('connect', function() { s.end(); process.exit(0); });
+          s.on('error', function() { process.exit(1); });
+          s.on('timeout', function() { s.destroy(); process.exit(1); });
+        " > /dev/null 2>&1
         ;;
       http)
         wget --timeout=1 -q "$HOST" -O /dev/null > /dev/null 2>&1
